@@ -1,0 +1,289 @@
+
+-----------------------------------------------------------------------------------------------
+
+
+http://localhost/Reservasi_Lapangan/index.php
+http://localhost/Reservasi_Lapangan/admin/index.php
+
+
+-----------------------------------------------------------------------------------------------
+prompt di terminal MySQL
+
+
+-MySQL -u root -p
+-use reservasi_lapangan_new (pake databasenya)
+
+
+-- 1. Melihat data Admin
+SELECT * FROM admin;
+
+-- 2. Melihat daftar Fasilitas 
+SELECT * FROM fasilitas;
+
+-- 3. Melihat data GOR (Gedung Olahraga)
+SELECT * FROM gor;
+
+-- 4. Melihat Jadwal ketersediaan
+SELECT * FROM jadwal;
+
+-- 5. Melihat daftar Lapangan
+SELECT * FROM lapangan;
+
+-- 6. Melihat relasi Fasilitas dengan lapangan
+SELECT * FROM lapangan_fasilitas;
+
+-- 7. Melihat data Pelanggan (Customer)
+SELECT * FROM pelanggan;
+
+-- 8. Melihat data Pembayaran (belum ada)
+SELECT * FROM pembayaran;
+
+-- 9. Melihat data Reservasi (Booking)
+SELECT * FROM reservasi;
+
+-- 10. Melihat fasilitas yang dipinjam oleh cust
+SELECT * FROM reservasi_fasilitas;
+
+
+-----------------------------------------------------------------------------------------------
+Alur User
+1. User pilih gor (unnes atau undip)
+2. User pilih lapangan (Futsal, Voly, basket, badminton)
+3. User pilih jadwal
+4. User pilih fasilitas
+5. User isi form biodata
+6. User bayar
+7. sukses
+
+
+
+Alur Admin
+1. klik reservasi pojok kanan atas
+2. Admin bisa update jam, fasilitas, status. (crud)
+
+
+
+
+
+
+================================================================================
+                               flowchart
+================================================================================
+
+    +-------------+         +-----------------+          +----------------+
+    |     GOR     |         |    LAPANGAN     |          |   FASILITAS    |
+    +-------------+    1:N  +-----------------+          +----------------+
+    | id_gor (PK) |-------->| id_lapangan (PK)|          |id_fasilitas(PK)|
+    | nama_gor    |         | id_gor (FK)     |          |nama_fasilitas  |
+    | kota        |         | nama_lapangan   |          +-------+--------+
+    +-------------+         | harga_per_jam   |                  ^
+                            +--------+--------+                  |
+                                     |                           |
+                                     | 1:N                       |
+                                     v                           |
+                            +-----------------+        (Pivot Lapangan)
+                            |     JADWAL      |        +--------------------+
+                            +-----------------+        | LAPANGAN_FASILITAS |
+                            | id_jadwal (PK)  |        +--------------------+
+                            | id_lapangan (FK)|------->| id_lapangan (FK)   |
+                            | tanggal, jam    |        | id_fasilitas (FK)  |--------+
+                            | status          |        +--------------------+        |
+                            +--------+--------+                                      |
+                                     |                                               |
+                                     | 1:N (Satu jadwal dipilih satu reservasi)      |
+                                     v                                               |
+================================================================================     |
+                                  TRANSAKSI                                          |
+================================================================================     |
+                                     |                                               |
+    +-------------+         +--------+--------+          +-------------------+       |
+    |    ADMIN    |    1:N  |    RESERVASI    | 1:N      | RESERVASI_FASILITAS|      |
+    +-------------+         +-----------------+          +-------------------+       |
+    | id_admin(PK)|-------->| id_reservasi(PK)|<---------| id_reservasi (FK) |       |
+    | nama, email |         | id_jadwal (FK)  |          | id_fasilitas (FK) |<------+
+    +-------------+         | id_pelanggan(FK)|          +-------------------+   (Sama-sama
+                            | id_admin (FK)   |                                   ambil dari
+                            | tgl_reservasi   |                                   Fasilitas)
+                            +--------+--------+
+                                     ^
+                                     | 1:N
+                            +--------+--------+
+                            |    PELANGGAN    |
+                            +-----------------+
+                            | id_pelanggan(PK)|
+                            | nama, email     |
+                            +--------+--------+
+                                     |
+                                     | 1:1
+                            +--------v--------+
+                            |   PEMBAYARAN    |
+                            +-----------------+
+                            | id_pembayaran(PK|
+                            | id_reservasi(FK)|
+                            | total_bayar     |
+                            | status          |
+                            +-----------------+
+
+-----------------------------------------------------------------------------------------------
+MariaDB [reservasi_lapangan_new]> -- 1. Melihat data Admin
+MariaDB [reservasi_lapangan_new]> SELECT * FROM admin;
+Empty set (0.001 sec)
+
+MariaDB [reservasi_lapangan_new]>
+MariaDB [reservasi_lapangan_new]> -- 2. Melihat daftar Fasilitas
+MariaDB [reservasi_lapangan_new]> SELECT * FROM fasilitas;
++--------------+--------------------+
+| id_fasilitas | nama_fasilitas     |
++--------------+--------------------+
+|            1 | Loker_Penyimpanan  |
+|            2 | Papan_Skor_Digital |
++--------------+--------------------+
+2 rows in set (0.000 sec)
+
+MariaDB [reservasi_lapangan_new]>
+MariaDB [reservasi_lapangan_new]> -- 3. Melihat data GOR (Gedung Olahraga)
+MariaDB [reservasi_lapangan_new]> SELECT * FROM gor;
++--------+---------------------------+-------------------------------+----------+------------+-----------------------------------------------------------------------+
+| id_gor | nama_gor                  | alamat                        | kota     | no_telepon | deskripsi                                                             |
++--------+---------------------------+-------------------------------+----------+------------+-----------------------------------------------------------------------+
+|      1 | GOR UNNES Training Center | Jl. Sekaran Raya, Gunungpati  | Semarang | 024-850809 | Pusat pelatihan olahraga mahasiswa dan umum dengan standar nasional.  |
+|      2 | GOR UNDIP Sport Center    | Jl. Prof. Soedarto, Tembalang | Semarang | 024-746004 | Fasilitas olahraga lengkap untuk mahasiswa UNDIP dan masyarakat umum. |
++--------+---------------------------+-------------------------------+----------+------------+-----------------------------------------------------------------------+
+2 rows in set (0.000 sec)
+
+MariaDB [reservasi_lapangan_new]>
+MariaDB [reservasi_lapangan_new]> -- 4. Melihat Jadwal ketersediaan
+MariaDB [reservasi_lapangan_new]> SELECT * FROM jadwal;
++-----------+-------------+------------+-----------+-------------+----------+
+| id_jadwal | id_lapangan | tanggal    | jam_mulai | jam_selesai | status   |
++-----------+-------------+------------+-----------+-------------+----------+
+|         1 |           1 | 2024-12-01 | 08:00:00  | 09:00:00    | tersedia |
+|         2 |           1 | 2024-12-01 | 09:00:00  | 10:00:00    | tersedia |
+|         3 |           1 | 2024-12-01 | 10:00:00  | 11:00:00    | tersedia |
+|         4 |           1 | 2024-12-01 | 11:00:00  | 12:00:00    | tersedia |
+|         5 |           1 | 2024-12-01 | 12:00:00  | 13:00:00    | tersedia |
+|         6 |           1 | 2024-12-01 | 13:00:00  | 14:00:00    | tersedia |
+|         7 |           1 | 2024-12-01 | 14:00:00  | 15:00:00    | tersedia |
+|         8 |           1 | 2024-12-01 | 15:00:00  | 16:00:00    | tersedia |
+|         9 |           2 | 2024-12-01 | 08:00:00  | 09:00:00    | tersedia |
+|        10 |           2 | 2024-12-01 | 09:00:00  | 10:00:00    | tersedia |
+|        11 |           2 | 2024-12-01 | 10:00:00  | 11:00:00    | tersedia |
+|        12 |           2 | 2024-12-01 | 11:00:00  | 12:00:00    | tersedia |
+|        13 |           2 | 2024-12-01 | 12:00:00  | 13:00:00    | tersedia |
+|        14 |           2 | 2024-12-01 | 13:00:00  | 14:00:00    | tersedia |
+|        15 |           2 | 2024-12-01 | 14:00:00  | 15:00:00    | tersedia |
+|        16 |           2 | 2024-12-01 | 15:00:00  | 16:00:00    | tersedia |
+|        17 |           3 | 2024-12-01 | 08:00:00  | 09:00:00    | tersedia |
+|        18 |           3 | 2024-12-01 | 09:00:00  | 10:00:00    | tersedia |
+|        19 |           3 | 2024-12-01 | 10:00:00  | 11:00:00    | tersedia |
+|        20 |           3 | 2024-12-01 | 11:00:00  | 12:00:00    | tersedia |
+|        21 |           3 | 2024-12-01 | 12:00:00  | 13:00:00    | tersedia |
+|        22 |           3 | 2024-12-01 | 13:00:00  | 14:00:00    | tersedia |
+|        23 |           3 | 2024-12-01 | 14:00:00  | 15:00:00    | tersedia |
+|        24 |           3 | 2024-12-01 | 15:00:00  | 16:00:00    | tersedia |
+|        25 |           4 | 2024-12-01 | 08:00:00  | 09:00:00    | tersedia |
+|        26 |           4 | 2024-12-01 | 09:00:00  | 10:00:00    | tersedia |
+|        27 |           4 | 2024-12-01 | 10:00:00  | 11:00:00    | tersedia |
+|        28 |           4 | 2024-12-01 | 11:00:00  | 12:00:00    | tersedia |
+|        29 |           4 | 2024-12-01 | 12:00:00  | 13:00:00    | tersedia |
+|        30 |           4 | 2024-12-01 | 13:00:00  | 14:00:00    | tersedia |
+|        31 |           4 | 2024-12-01 | 14:00:00  | 15:00:00    | tersedia |
+|        32 |           4 | 2024-12-01 | 15:00:00  | 16:00:00    | tersedia |
+|        33 |           5 | 2024-12-01 | 08:00:00  | 09:00:00    | tersedia |
+|        34 |           5 | 2024-12-01 | 09:00:00  | 10:00:00    | tersedia |
+|        35 |           5 | 2024-12-01 | 10:00:00  | 11:00:00    | tersedia |
+|        36 |           5 | 2024-12-01 | 11:00:00  | 12:00:00    | tersedia |
+|        37 |           5 | 2024-12-01 | 12:00:00  | 13:00:00    | tersedia |
+|        38 |           5 | 2024-12-01 | 13:00:00  | 14:00:00    | tersedia |
+|        39 |           5 | 2024-12-01 | 14:00:00  | 15:00:00    | tersedia |
+|        40 |           5 | 2024-12-01 | 15:00:00  | 16:00:00    | tersedia |
+|        41 |           6 | 2024-12-01 | 08:00:00  | 09:00:00    | tersedia |
+|        42 |           6 | 2024-12-01 | 09:00:00  | 10:00:00    | tersedia |
+|        43 |           6 | 2024-12-01 | 10:00:00  | 11:00:00    | tersedia |
+|        44 |           6 | 2024-12-01 | 11:00:00  | 12:00:00    | tersedia |
+|        45 |           6 | 2024-12-01 | 12:00:00  | 13:00:00    | tersedia |
+|        46 |           6 | 2024-12-01 | 13:00:00  | 14:00:00    | tersedia |
+|        47 |           6 | 2024-12-01 | 14:00:00  | 15:00:00    | tersedia |
+|        48 |           6 | 2024-12-01 | 15:00:00  | 16:00:00    | tersedia |
+|        49 |           7 | 2024-12-01 | 08:00:00  | 09:00:00    | tersedia |
+|        50 |           7 | 2024-12-01 | 09:00:00  | 10:00:00    | tersedia |
+|        51 |           7 | 2024-12-01 | 10:00:00  | 11:00:00    | tersedia |
+|        52 |           7 | 2024-12-01 | 11:00:00  | 12:00:00    | tersedia |
+|        53 |           7 | 2024-12-01 | 12:00:00  | 13:00:00    | tersedia |
+|        54 |           7 | 2024-12-01 | 13:00:00  | 14:00:00    | tersedia |
+|        55 |           7 | 2024-12-01 | 14:00:00  | 15:00:00    | tersedia |
+|        56 |           7 | 2024-12-01 | 15:00:00  | 16:00:00    | tersedia |
+|        57 |           8 | 2024-12-01 | 08:00:00  | 09:00:00    | tersedia |
+|        58 |           8 | 2024-12-01 | 09:00:00  | 10:00:00    | tersedia |
+|        59 |           8 | 2024-12-01 | 10:00:00  | 11:00:00    | tersedia |
+|        60 |           8 | 2024-12-01 | 11:00:00  | 12:00:00    | tersedia |
+|        61 |           8 | 2024-12-01 | 12:00:00  | 13:00:00    | tersedia |
+|        62 |           8 | 2024-12-01 | 13:00:00  | 14:00:00    | tersedia |
+|        63 |           8 | 2024-12-01 | 14:00:00  | 15:00:00    | tersedia |
+|        64 |           8 | 2024-12-01 | 15:00:00  | 16:00:00    | tersedia |
++-----------+-------------+------------+-----------+-------------+----------+
+64 rows in set (0.001 sec)
+
+MariaDB [reservasi_lapangan_new]>
+MariaDB [reservasi_lapangan_new]> -- 5. Melihat daftar Lapangan
+MariaDB [reservasi_lapangan_new]> SELECT * FROM lapangan;
++-------------+--------+--------------------------+----------------+---------------+--------+
+| id_lapangan | id_gor | nama_lapangan            | jenis_lapangan | harga_per_jam | status |
++-------------+--------+--------------------------+----------------+---------------+--------+
+|           1 |      1 | Lapangan Futsal UNNES    | futsal         |     150000.00 | aktif  |
+|           2 |      1 | Lapangan Voli UNNES      | voli           |      80000.00 | aktif  |
+|           3 |      1 | Lapangan Badminton UNNES | badminton      |      50000.00 | aktif  |
+|           4 |      1 | Lapangan Basket UNNES    | basket         |     120000.00 | aktif  |
+|           5 |      2 | Lapangan Futsal UNDIP    | futsal         |     200000.00 | aktif  |
+|           6 |      2 | Lapangan Voli UNDIP      | voli           |     100000.00 | aktif  |
+|           7 |      2 | Lapangan Badminton UNDIP | badminton      |     100000.00 | aktif  |
+|           8 |      2 | Lapangan Basket UNDIP    | basket         |     150000.00 | aktif  |
++-------------+--------+--------------------------+----------------+---------------+--------+
+8 rows in set (0.001 sec)
+
+MariaDB [reservasi_lapangan_new]>
+MariaDB [reservasi_lapangan_new]> -- 6. Melihat relasi Fasilitas dengan lapangan
+MariaDB [reservasi_lapangan_new]> SELECT * FROM lapangan_fasilitas;
++-------------+--------------+
+| id_lapangan | id_fasilitas |
++-------------+--------------+
+|           1 |            1 |
+|           1 |            2 |
+|           2 |            1 |
+|           2 |            2 |
+|           3 |            1 |
+|           3 |            2 |
+|           4 |            1 |
+|           4 |            2 |
+|           5 |            1 |
+|           5 |            2 |
+|           6 |            1 |
+|           6 |            2 |
+|           7 |            1 |
+|           7 |            2 |
+|           8 |            1 |
+|           8 |            2 |
++-------------+--------------+
+16 rows in set (0.001 sec)
+
+MariaDB [reservasi_lapangan_new]>
+MariaDB [reservasi_lapangan_new]> -- 7. Melihat data Pelanggan (Customer)
+MariaDB [reservasi_lapangan_new]> SELECT * FROM pelanggan;
+Empty set (0.001 sec)
+
+MariaDB [reservasi_lapangan_new]>
+MariaDB [reservasi_lapangan_new]> -- 8. Melihat data Pembayaran (belum ada)
+MariaDB [reservasi_lapangan_new]> SELECT * FROM pembayaran;
+Empty set (0.001 sec)
+
+MariaDB [reservasi_lapangan_new]>
+MariaDB [reservasi_lapangan_new]> -- 9. Melihat data Reservasi (Booking)
+MariaDB [reservasi_lapangan_new]> SELECT * FROM reservasi;
+Empty set (0.001 sec)
+
+MariaDB [reservasi_lapangan_new]>
+MariaDB [reservasi_lapangan_new]> -- 10. Melihat fasilitas yang dipinjam oleh cust
+MariaDB [reservasi_lapangan_new]> SELECT * FROM reservasi_fasilitas;
+Empty set (0.001 sec)
+
+MariaDB [reservasi_lapangan_new]>
